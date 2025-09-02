@@ -1,0 +1,10 @@
+[
+  {
+    "id": "demo-user-123",
+    "email": "demo@idme.com",
+    "password": "$2b$10$SU4safFXg75EmOE0cbbUYOW3BhF.g27.eOLEe0YbY7u93b.H8t0YS",
+    "name": "Demo User",
+    "createdAt": "2024-08-27T10:00:00.000Z",
+    "lastLogin": null
+  }
+]
