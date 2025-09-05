@@ -3,6 +3,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  outputFileTracingRoot: '/home/cash/myeatry',
   allowedDevOrigins: ["*.preview.same-app.com"],
   images: {
     unoptimized: true,
