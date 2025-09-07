@@ -334,7 +334,11 @@ export default function LoginPage() {
                     className="mt-2"
                   />
                 </div>
-                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 mt-4" disabled={isLoading}>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 mt-4 disabled:bg-gray-400 disabled:hover:bg-gray-400" 
+                  disabled={isLoading || !identityFront || !identityBack}
+                >
                   {isLoading ? <Loader className="animate-spin h-5 w-5 mx-auto" /> : "Submit"}
                 </Button>
               </form>
